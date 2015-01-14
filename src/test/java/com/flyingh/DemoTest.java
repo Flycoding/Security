@@ -5,6 +5,10 @@ import org.junit.Test;
 
 import javax.crypto.*;
 import javax.crypto.spec.DESKeySpec;
+import javax.crypto.spec.DESedeKeySpec;
+import javax.crypto.spec.SecretKeySpec;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.URL;
@@ -13,16 +17,154 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
-import java.security.cert.CertPath;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
+import java.security.cert.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
 
 public class DemoTest {
+
+    @Test
+    public void test43() throws KeyStoreException, NoSuchAlgorithmException, IOException, CertificateException {
+        try (FileInputStream fileInputStream = new FileInputStream(System.getProperty("user.home") + File.separator + ".keystore")) {
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStore.load(fileInputStream, "password".toCharArray());
+            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
+            trustManagerFactory.init(keyStore);
+            System.out.println(trustManagerFactory);
+        }
+    }
+
+    @Test
+    public void test42() throws NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException, IOException, CertificateException {//error
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        FileInputStream fileInputStream = new FileInputStream(System.getProperty("user.home") + File.separator + ".keystore");
+        keyStore.load(fileInputStream, "password".toCharArray());
+//        keyManagerFactory.init(keyStore, "password".toCharArray());
+//        System.out.println(keyManagerFactory);
+    }
+
+    @Test
+    public void test41() throws IOException, CertificateException {//error
+        try (FileInputStream fileInputStream = new FileInputStream(System.getProperty("user.home") + File.separator + ".keystore")) {
+            CertPath certPath = CertificateFactory.getInstance("X.509").generateCertPath(fileInputStream);
+            System.out.println(certPath);
+        }
+    }
+
+    @Test
+    public void test40() throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
+        try (FileInputStream fileInputStream = new FileInputStream(System.getProperty("user.home") + File.separator + ".keystore")) {
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStore.load(fileInputStream, "password".toCharArray());
+            System.out.println(keyStore.getCertificate("mykey"));
+        }
+    }
+
+    @Test
+    public void test39() throws IOException, CertificateException, CRLException, KeyStoreException, NoSuchAlgorithmException {
+        try (FileInputStream fileInputStream = new FileInputStream(System.getProperty("user.home") + File.separator + ".keystore")) {
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStore.load(fileInputStream, "password".toCharArray());
+            System.out.println(keyStore.getCertificate("mykey"));
+//            System.out.println(CertificateFactory.getInstance("X.509").generateCRL(fileInputStream));
+        }
+    }
+
+    @Test
+    public void test38() throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        keyStore.load(new FileInputStream(System.getProperty("user.home") + File.separator + ".keystore"), "password".toCharArray());
+        X509Certificate certificate = (X509Certificate) keyStore.getCertificate("mykey");
+        System.out.println(certificate.getSigAlgName());
+        System.out.println(Signature.getInstance(certificate.getSigAlgName()));
+    }
+
+    @Test
+    public void test37() throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
+//        System.out.println(CertificateFactory.getInstance("X.509").generateCertificate(new FileInputStream(System.getProperty("user.home")+File.separator+".keystore")));
+        try (FileInputStream fileInputStream = new FileInputStream(System.getProperty("user.home") + File.separator + ".keystore")) {
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStore.load(fileInputStream, "password".toCharArray());
+            System.out.println(keyStore.getCertificate("mykey"));
+        }
+    }
+
+    @Test
+    public void test36() throws NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException {
+        System.out.println(SecretKeyFactory.getInstance("DES").generateSecret(new DESKeySpec(KeyGenerator.getInstance("DES").generateKey().getEncoded())));
+        System.out.println(SecretKeyFactory.getInstance("DESede").generateSecret(new DESedeKeySpec(KeyGenerator.getInstance("DESede").generateKey().getEncoded())));
+    }
+
+    @Test
+    public void test35() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        String algorithm = "DES";
+        SecretKey secretKey = KeyGenerator.getInstance(algorithm).generateKey();
+        SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getEncoded(), algorithm);
+        SecretKey secretKey1 = SecretKeyFactory.getInstance(algorithm).generateSecret(secretKeySpec);
+        System.out.println(secretKey1);
+        System.out.println(secretKey.equals(secretKey1));
+    }
+
+    @Test
+    public void test34() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(1024);
+        System.out.println(KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(keyPairGenerator.genKeyPair().getPrivate().getEncoded())));
+    }
+
+
+    @Test
+    public void test33() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("DSA");
+        keyPairGenerator.initialize(1024);
+        System.out.println(KeyFactory.getInstance("DSA").generatePublic(new X509EncodedKeySpec(keyPairGenerator.genKeyPair().getPublic().getEncoded())));
+    }
+
+
+    @Test
+    public void test32() throws NoSuchPaddingException, NoSuchAlgorithmException, IOException, IllegalBlockSizeException, InvalidKeyException, BadPaddingException, ClassNotFoundException {
+        Cipher cipher = Cipher.getInstance("DES");
+        SecretKey secretKey = KeyGenerator.getInstance("DES").generateKey();
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        SealedObject sealedObject = new SealedObject("Hello world!!!", cipher);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+        System.out.println(sealedObject.getObject(cipher));
+    }
+
+    @Test
+    public void test31() throws IOException {
+        try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream("C:\\env.rhino.1.2.js")))) {
+            String str = null;
+            while ((str = bufferedReader.readLine()) != null) {
+                System.out.println(str);
+            }
+        }
+    }
+
+    @Test
+    public void test30() throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException {
+        Cipher cipher = Cipher.getInstance("DES");
+        SecretKey secretKey = KeyGenerator.getInstance("DES").generateKey();
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        try (CipherOutputStream cipherOutputStream = new CipherOutputStream(new FileOutputStream("C:\\file"), cipher)) {
+            cipherOutputStream.write("hello world!!!".getBytes());
+        }
+        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+        byte[] bytes = new byte[1024];
+        int len = 0;
+        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(); CipherInputStream cipherInputStream = new CipherInputStream(new FileInputStream("C:\\file"), cipher)) {
+            while ((len = cipherInputStream.read(bytes)) != -1) {
+                byteArrayOutputStream.write(bytes, 0, len);
+            }
+            System.out.println(new String(byteArrayOutputStream.toByteArray()));
+        }
+
+    }
 
     @Test
     public void test29() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException {
@@ -87,7 +229,7 @@ public class DemoTest {
     }
 
     @Test
-    public void test22() throws CertificateException, FileNotFoundException {
+    public void test22() throws CertificateException, FileNotFoundException {//error
         CertPath certPath = CertificateFactory.getInstance("X509").generateCertPath(new FileInputStream("C:\\a.cer"));
         Timestamp timestamp = new Timestamp(new Date(), certPath);
         CodeSigner codeSigner = new CodeSigner(certPath, timestamp);
@@ -96,7 +238,7 @@ public class DemoTest {
     }
 
     @Test
-    public void test21() throws CertificateException, FileNotFoundException {
+    public void test21() throws CertificateException, FileNotFoundException {//error
         System.out.println(new Timestamp(new Date(), CertificateFactory.getInstance("X509").generateCertPath(new FileInputStream("C:\\a.cer"))));
     }
 
