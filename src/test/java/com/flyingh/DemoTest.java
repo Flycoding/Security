@@ -22,10 +22,67 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Map;
+import java.util.zip.Adler32;
+import java.util.zip.CRC32;
 
 public class DemoTest {
+
+    @Test
+    public void test49() {
+        CRC32 crc32 = new CRC32();
+        crc32.update("123456".getBytes(StandardCharsets.UTF_8));
+        System.out.printf("%08X%n", crc32.getValue());
+        System.out.println(Long.toHexString(crc32.getValue()));
+        System.out.println("**********************");
+        Adler32 adler32 = new Adler32();
+        adler32.update("123456".getBytes(StandardCharsets.UTF_8));
+        System.out.println(Long.toHexString(adler32.getValue()));
+
+    }
+
+    @Test
+    public void test48() throws NoSuchAlgorithmException, InvalidKeyException {
+        Mac mac = Mac.getInstance("HmacSHA1");
+        mac.init(new SecretKeySpec(KeyGenerator.getInstance("HmacSHA1").generateKey().getEncoded(), "HmacSHA1"));
+        System.out.printf("%040X", new BigInteger(1, mac.doFinal("hello world".getBytes(StandardCharsets.UTF_8))));
+    }
+
+    @Test
+    public void test47() throws NoSuchAlgorithmException {
+        System.out.printf("%040x", new BigInteger(1, MessageDigest.getInstance("SHA-224").digest("123456".getBytes(StandardCharsets.UTF_8))));
+    }
+
+    @Test
+    public void test46() throws UnsupportedEncodingException {
+        System.out.println(Character.codePointAt("A", 0));
+        System.out.println((int) 'A');
+        System.out.println(Base64.getEncoder().encodeToString("A".getBytes()));
+        System.out.println(Integer.toBinaryString('A'));
+        System.out.println(Base64.getEncoder().encodeToString("密".getBytes("UTF-8")));
+        System.out.println(Base64.getEncoder().encodeToString("密".getBytes("GBK")));
+    }
+
+    @Test
+    public void test45() throws NoSuchAlgorithmException {
+        System.out.printf("%032x%n", new BigInteger(1, MessageDigest.getInstance("MD4").digest("123456".getBytes(StandardCharsets.UTF_8))));
+        System.out.printf("%056x%n", new BigInteger(1, MessageDigest.getInstance("SHA-224").digest("123456".getBytes(StandardCharsets.UTF_8))));
+        Provider provider = Security.getProvider("BC");
+        for (Map.Entry<Object, Object> me : provider.entrySet()) {
+            System.out.println(me.getKey() + "--->" + me.getValue());
+        }
+    }
+
+    @Test
+    public void test44() throws NoSuchAlgorithmException {
+        KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
+        keyGenerator.init(256);
+        SecretKey secretKey = keyGenerator.generateKey();
+        System.out.println(secretKey);
+    }
+
 
     @Test
     public void test43() throws KeyStoreException, NoSuchAlgorithmException, IOException, CertificateException {
