@@ -4,9 +4,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Test;
 
 import javax.crypto.*;
-import javax.crypto.spec.DESKeySpec;
-import javax.crypto.spec.DESedeKeySpec;
-import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.spec.*;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.*;
@@ -29,6 +27,74 @@ import java.util.zip.Adler32;
 import java.util.zip.CRC32;
 
 public class DemoTest {
+
+    @Test
+    public void test54() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException {
+        String algorithm = "PBEWithMD5andDES";
+        Cipher cipher = Cipher.getInstance(algorithm);
+        String password = "password";
+        byte[] salt = new SecureRandom().generateSeed(8);
+        int iterationCount = 10;
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeyFactory.getInstance(algorithm).generateSecret(new PBEKeySpec(password.toCharArray())), new PBEParameterSpec(salt, iterationCount));
+        byte[] bytes = cipher.doFinal("hello world!".getBytes());
+        cipher.init(Cipher.DECRYPT_MODE, SecretKeyFactory.getInstance(algorithm).generateSecret(new PBEKeySpec(password.toCharArray())), new PBEParameterSpec(salt, iterationCount));
+        System.out.println(new String(cipher.doFinal(bytes)));
+    }
+
+    @Test
+    public void test53() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+        Cipher cipher = Cipher.getInstance("IDEA/ECB/ISO10126Padding");
+        KeyGenerator keyGenerator = KeyGenerator.getInstance("IDEA");
+        keyGenerator.init(128);
+        byte[] encoded = keyGenerator.generateKey().getEncoded();
+        System.out.println("encoded:" + Base64.getEncoder().encodeToString(encoded));
+        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(encoded, "IDEA"));
+        byte[] bytes = cipher.doFinal("Hello World".getBytes());
+        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(encoded, "IDEA"));
+        System.out.println(new String(cipher.doFinal(bytes)));
+    }
+
+    @Test
+    public void test52() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, NoSuchProviderException {
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding", "BC");
+        KeyGenerator keyGenerator = KeyGenerator.getInstance("AES", "BC");
+        keyGenerator.init(256);
+        byte[] encoded = keyGenerator.generateKey().getEncoded();
+        System.out.println("encoded:" + Base64.getEncoder().encodeToString(encoded));
+        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(encoded, "AES"));
+        byte[] bytes = cipher.doFinal("hello world".getBytes());
+        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(encoded, "AES"));
+        System.out.println(new String(cipher.doFinal(bytes)));
+    }
+
+    @Test
+    public void test51() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException, BadPaddingException, IllegalBlockSizeException {
+        Cipher cipher = Cipher.getInstance("DESede/ECB/PKCS7Padding");
+        KeyGenerator keyGenerator = KeyGenerator.getInstance("DESede");
+        keyGenerator.init(192);
+        byte[] encoded = keyGenerator.generateKey().getEncoded();
+        System.out.println("encoded:" + Base64.getEncoder().encodeToString(encoded));
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeyFactory.getInstance("DESede").generateSecret(new DESedeKeySpec(encoded)));
+        byte[] bytes = cipher.doFinal("hello world!!!!!".getBytes());
+        cipher.init(Cipher.DECRYPT_MODE, SecretKeyFactory.getInstance("DESede").generateSecret(new DESedeKeySpec(encoded)));
+        System.out.println(new String(cipher.doFinal(bytes)));
+    }
+
+
+    @Test
+    public void test50() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException, BadPaddingException, IllegalBlockSizeException, NoSuchProviderException {
+        Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+        KeyGenerator keyGenerator = KeyGenerator.getInstance("DES", "BC");
+        keyGenerator.init(64);
+        byte[] encoded = keyGenerator.generateKey().getEncoded();
+        System.out.println("encoded:" + Base64.getEncoder().encodeToString(encoded));
+        SecretKey secretKey1 = SecretKeyFactory.getInstance("DES").generateSecret(new DESKeySpec(encoded));
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey1);
+        byte[] bytes = cipher.doFinal("Hello world!".getBytes());
+        SecretKey secretKey2 = SecretKeyFactory.getInstance("DES").generateSecret(new DESKeySpec(encoded));
+        cipher.init(Cipher.DECRYPT_MODE, secretKey2);
+        System.out.println(new String(cipher.doFinal(bytes)));
+    }
 
     @Test
     public void test49() {
