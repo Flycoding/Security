@@ -4,6 +4,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Test;
 
 import javax.crypto.*;
+import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.*;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
@@ -17,6 +18,7 @@ import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.*;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
@@ -27,6 +29,116 @@ import java.util.zip.Adler32;
 import java.util.zip.CRC32;
 
 public class DemoTest {
+
+    @Test
+    public void test57() throws NoSuchAlgorithmException, InvalidParameterSpecException, InvalidAlgorithmParameterException, IllegalBlockSizeException, InvalidKeyException, BadPaddingException, InvalidKeySpecException, NoSuchPaddingException {
+        String algorithm = "ElGamal";
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
+        AlgorithmParameterGenerator algorithmParameterGenerator = AlgorithmParameterGenerator.getInstance(algorithm);
+        algorithmParameterGenerator.init(512);
+        keyPairGenerator.initialize(algorithmParameterGenerator.generateParameters().getParameterSpec(DHParameterSpec.class));
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        PublicKey publicKey = keyPair.getPublic();
+        System.out.println(publicKey);
+        System.out.println(Base64.getEncoder().encodeToString(publicKey.getEncoded()));
+        PrivateKey privateKey = keyPair.getPrivate();
+        System.out.println(privateKey);
+
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(Cipher.ENCRYPT_MODE, KeyFactory.getInstance(algorithm).generatePublic(new X509EncodedKeySpec(publicKey.getEncoded())));
+        byte[] bytes = cipher.doFinal("hello world!!!This is a demo!!!!!".getBytes());
+
+        cipher.init(Cipher.DECRYPT_MODE, KeyFactory.getInstance(algorithm).generatePrivate(new PKCS8EncodedKeySpec(privateKey.getEncoded())));
+        System.out.println(new String(cipher.doFinal(bytes)));
+    }
+
+    @Test
+    public void test56() throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+        KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        PublicKey publicKey = keyPair.getPublic();
+        PrivateKey privateKey = keyPair.getPrivate();
+        byte[] bytes1 = encryptByPrivateKey("hello world".getBytes(), privateKey);
+        System.out.println(new String(decryptByPublicKey(bytes1, publicKey)));
+
+        byte[] bytes2 = encryptByPublicKey("hello world!".getBytes(), publicKey);
+        System.out.println(new String(decryptByPrivateKey(bytes2, privateKey)));
+    }
+
+    private byte[] decryptByPrivateKey(byte[] bytes2, PrivateKey privateKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException {
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.DECRYPT_MODE, KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(privateKey.getEncoded())));
+        return cipher.doFinal(bytes2);
+    }
+
+    private byte[] encryptByPublicKey(byte[] bytes, PublicKey publicKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.ENCRYPT_MODE, KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKey.getEncoded())));
+        return cipher.doFinal(bytes);
+    }
+
+    private byte[] decryptByPublicKey(byte[] bytes, PublicKey publicKey) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidKeySpecException, IllegalBlockSizeException, BadPaddingException {
+        Cipher cipher2 = Cipher.getInstance("RSA");
+        cipher2.init(Cipher.DECRYPT_MODE, KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKey.getEncoded())));
+        return cipher2.doFinal(bytes);
+    }
+
+    private byte[] encryptByPrivateKey(byte[] data, PrivateKey privateKey) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidKeySpecException, IllegalBlockSizeException, BadPaddingException {
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.ENCRYPT_MODE, KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(privateKey.getEncoded())));
+        return cipher.doFinal(data);
+    }
+
+
+    @Test
+    public void test55() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, InvalidKeySpecException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException {
+        String algorithm = "DH";
+        KeyPair keyPair1 = genKeyPair(algorithm);
+        System.out.println("publicKey1:" + keyPair1.getPublic());
+        System.out.println("privateKey1:" + keyPair1.getPrivate());
+        DHPublicKey publicKey = (DHPublicKey) keyPair1.getPublic();
+        KeyPair keyPair2 = genKeyPair(algorithm, publicKey.getParams());
+        System.out.println("publicKey2:" + keyPair2.getPublic());
+        System.out.println("privateKey2:" + keyPair2.getPrivate());
+        SecretKey secretKey1 = genSecretKey(algorithm, keyPair1.getPrivate(), keyPair2.getPublic());
+        SecretKey secretKey2 = genSecretKey(algorithm, keyPair2.getPrivate(), keyPair1.getPublic());
+        System.out.println(Base64.getEncoder().encodeToString(secretKey1.getEncoded()));
+        System.out.println(Base64.getEncoder().encodeToString(secretKey2.getEncoded()));
+        byte[] data = "hello world".getBytes();
+        byte[] bytes = encrypt(secretKey1, data);
+        System.out.println(new String(decrypt(secretKey2, bytes)));
+    }
+
+    private byte[] decrypt(SecretKey secretKey2, byte[] bytes) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        Cipher cipher2 = Cipher.getInstance("AES/ECB/PKCS5Padding");
+        cipher2.init(Cipher.DECRYPT_MODE, secretKey2);
+        return cipher2.doFinal(bytes);
+    }
+
+    private byte[] encrypt(SecretKey secretKey1, byte[] data) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey1);
+        return cipher.doFinal(data);
+    }
+
+    private SecretKey genSecretKey(String algorithm, PrivateKey privateKey, PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException {
+        KeyAgreement keyAgreement = KeyAgreement.getInstance(algorithm);
+        KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
+        keyAgreement.init(keyFactory.generatePrivate(new PKCS8EncodedKeySpec(privateKey.getEncoded())));
+        keyAgreement.doPhase(keyFactory.generatePublic(new X509EncodedKeySpec(publicKey.getEncoded())), true);
+        return keyAgreement.generateSecret("AES");
+    }
+
+    private KeyPair genKeyPair(String algorithm, DHParameterSpec params) throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
+        keyPairGenerator.initialize(params);
+        return keyPairGenerator.generateKeyPair();
+    }
+
+    private KeyPair genKeyPair(String algorithm) throws NoSuchAlgorithmException {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
+        keyPairGenerator.initialize(1024);
+        return keyPairGenerator.genKeyPair();
+    }
 
     @Test
     public void test54() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException {
