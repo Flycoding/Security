@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.*;
+import java.security.cert.Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -29,6 +30,70 @@ import java.util.zip.Adler32;
 import java.util.zip.CRC32;
 
 public class DemoTest {
+
+    @Test
+    public void test60() throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, NoSuchPaddingException, InvalidKeySpecException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, SignatureException {
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(new FileInputStream(System.getProperty("user.home") + File.separator + "key.store"), "password".toCharArray());
+        Certificate certificate = keyStore.getCertificate("key");
+        Certificate certificate1 = CertificateFactory.getInstance("X.509").generateCertificate(new FileInputStream(System.getProperty("user.home") + File.separator + "key.cer"));
+        System.out.println(certificate.equals(certificate1));
+
+        PrivateKey privateKey = (PrivateKey) keyStore.getKey("key", "passwd".toCharArray());
+        PublicKey publicKey = certificate.getPublicKey();
+
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.ENCRYPT_MODE, KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(privateKey.getEncoded())));
+        byte[] bytes = cipher.doFinal("hello world!!!".getBytes());
+
+        cipher.init(Cipher.DECRYPT_MODE, KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKey.getEncoded())));
+        System.out.println(new String(cipher.doFinal(bytes)));
+
+        Signature signature = Signature.getInstance(((X509Certificate) certificate).getSigAlgName());
+        signature.initSign(privateKey);
+        byte[] data = "haha".getBytes();
+        signature.update(data);
+        byte[] sign = signature.sign();
+
+        signature.initVerify(publicKey);
+        signature.update(data);
+        System.out.println(signature.verify(sign));
+    }
+
+    @Test
+    public void test59() throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, SignatureException {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("DSA");
+        keyPairGenerator.initialize(1024);
+        KeyPair keyPair = keyPairGenerator.genKeyPair();
+
+        Signature signature = Signature.getInstance("SHA1WithDSA");
+        signature.initSign(KeyFactory.getInstance("DSA").generatePrivate(new PKCS8EncodedKeySpec(keyPair.getPrivate().getEncoded())));
+        byte[] data = "hello world".getBytes();
+        signature.update(data);
+        byte[] sign = signature.sign();
+        signature.initVerify(KeyFactory.getInstance("DSA").generatePublic(new X509EncodedKeySpec(keyPair.getPublic().getEncoded())));
+        signature.update(data);
+        System.out.println(signature.verify(sign));
+    }
+
+    @Test
+    public void test58() throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, SignatureException {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(1024);
+        KeyPair keyPair = keyPairGenerator.genKeyPair();
+        PublicKey publicKey = keyPair.getPublic();
+        PrivateKey privateKey = keyPair.getPrivate();
+
+        Signature signature = Signature.getInstance("SHA1WithRSA");
+        signature.initSign(KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(privateKey.getEncoded())));
+        byte[] data = "hello world".getBytes();
+        signature.update(data);
+        byte[] sign = signature.sign();
+
+        signature.initVerify(KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKey.getEncoded())));
+        signature.update(data);
+        System.out.println(signature.verify(sign));
+    }
 
     @Test
     public void test57() throws NoSuchAlgorithmException, InvalidParameterSpecException, InvalidAlgorithmParameterException, IllegalBlockSizeException, InvalidKeyException, BadPaddingException, InvalidKeySpecException, NoSuchPaddingException {
